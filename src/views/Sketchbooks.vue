@@ -31,7 +31,7 @@
             :style="{ transform: 'translateX(' + -book.startIndex * imageWidth + 'px)' }"
           >
             <img
-              v-for="(img, imgIndex) in book.images"
+               v-for="(img, imgIndex) in book.images"
               :key="img"
               :src="img"
               class="preview-image"
