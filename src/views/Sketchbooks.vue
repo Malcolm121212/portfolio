@@ -28,10 +28,10 @@
         <div class="preview-container" ref="containerRefs" :data-index="bookIndex">
           <div
             class="preview-strip"
-            :style="{ transform: 'translateX(' + -book.startIndex * imageWidth + 'px)' }"
+            :style="{ transform: isMobile ? 'none' : 'translateX(' + -book.startIndex * imageWidth + 'px)' }"
           >
             <img
-               v-for="(img, imgIndex) in book.images"
+              v-for="(img, imgIndex) in book.images"
               :key="img"
               :src="img"
               class="preview-image"
@@ -57,6 +57,7 @@
       v-if="viewerOpen"
       :images="activeImages"
       :startIndex="activeIndex"
+      :isMobile="isMobile"
       @close="viewerOpen = false"
     />
   </div>
@@ -86,21 +87,27 @@ export default {
       activeIndex: 0,
       hoverIndex: null,
       containerRefs: [],
-      imageWidth: 200, // ברירת מחדל, תתעדכן לפי תמונה
-      hoverIntervals: {}
+      imageWidth: 200,
+      hoverIntervals: {},
+      isMobile: window.innerWidth <= 768
     }
   },
 
   created() {
     this.buildSketchbooks()
-    window.addEventListener('resize', this.updateVisibleCount)
+    window.addEventListener('resize', this.handleResize)
   },
 
   beforeUnmount() {
-    window.removeEventListener('resize', this.updateVisibleCount)
+    window.removeEventListener('resize', this.handleResize)
   },
 
   methods: {
+    handleResize() {
+      this.isMobile = window.innerWidth <= 768
+      this.updateVisibleCount()
+    },
+
     buildSketchbooks() {
       const books = {}
 
@@ -155,7 +162,7 @@ export default {
     updateVisibleCount() {
       this.sketchbooks.forEach((book, index) => {
         const container = this.$refs.containerRefs[index]
-        if (container) {
+        if (container && !this.isMobile) {
           const containerWidth = container.clientWidth
           book.visibleCount = Math.floor(containerWidth / this.imageWidth)
         }
@@ -247,7 +254,7 @@ h2 span {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(0,0,0,0.7);
+  background: black;
   border: none;
   color: white;
   font-size: 2rem;
@@ -279,9 +286,19 @@ h2 span {
   .preview-image {
     height: 150px;
   }
+
   .arrow {
-    font-size: 1.5rem;
-    padding: 6px;
+    display: none !important;
+  }
+
+  .preview-container {
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .preview-strip {
+    flex-wrap: nowrap;
   }
 }
 
