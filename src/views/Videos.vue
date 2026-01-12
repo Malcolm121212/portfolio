@@ -1,33 +1,40 @@
 <template>
-  <section class="videos" v-if="filteredProjects.length > 0">
+  <section class="videos">
     <h1>עבודות וידאו</h1>
-    <div class="projects-container">
+
+    <!-- מצב טעינה -->
+    <p v-if="!isReady" class="loading">
+      טוען עבודות…
+    </p>
+
+    <!-- תוכן -->
+    <div v-else class="projects-container">
       <div
         class="project"
-        v-for="project in filteredProjects"
-        :key="project.metadata.title"
+        v-for="project in projects"
+        :key="project.title"
       >
-        <h2>{{ project.metadata.title }} ({{ project.metadata.year }})</h2>
-        <p>{{ project.metadata.description }}</p>
-        <p>
-          <strong>Medium:</strong> {{ project.metadata.medium }} |
-          <strong>Duration:</strong> {{ project.metadata.duration }}
+        <h2>{{ project.title }} ({{ project.year }})</h2>
+        <p>{{ project.description }}</p>
+        <p class="meta">
+          <strong>Medium:</strong> {{ project.medium }} |
+          <strong>Duration:</strong> {{ project.duration }}
         </p>
 
-        <div class="media-wrapper" v-if="project.media.length > 0">
+        <div class="media-wrapper">
           <button
+            class="nav-btn"
             @click="prevMedia(project)"
             :disabled="project.currentIndex === 0"
-            class="nav-btn"
           >
-            &#8592;
+            ←
           </button>
 
           <div class="media">
-            <!-- YouTube embed -->
+            <!-- YouTube -->
             <iframe
               v-if="project.media[project.currentIndex].type === 'youtube'"
-              :src="'https://www.youtube.com/embed/' + project.media[project.currentIndex].src"
+              :src="youtubeEmbed(project.media[project.currentIndex].src)"
               frameborder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowfullscreen
@@ -35,8 +42,9 @@
 
             <!-- Image -->
             <img
-              v-else-if="project.media[project.currentIndex].type === 'image'"
+              v-else
               :src="project.media[project.currentIndex].src"
+              alt=""
             />
 
             <p class="media-number">
@@ -45,11 +53,11 @@
           </div>
 
           <button
+            class="nav-btn"
             @click="nextMedia(project)"
             :disabled="project.currentIndex === project.media.length - 1"
-            class="nav-btn"
           >
-            &#8594;
+            →
           </button>
         </div>
       </div>
@@ -60,63 +68,63 @@
 <script>
 export default {
   name: 'Videos',
+
   data() {
     return {
       projects: [],
-    };
-  },
-  computed: {
-    // ✅ מסנן פרויקטים שיש להם מדיה
-    filteredProjects() {
-      return this.projects.filter(
-        project => project && project.media && project.media.length > 0
-      );
+      isReady: false
     }
   },
-  async created() {
-    const metadataModules = import.meta.glob(
-      '../assets/videos/*/metadata.json',
-      { eager: true, import: 'default' }
-    );
 
-    const projectsMap = {};
+  mounted() {
+    // 🔹 כאן את רק מכניסה YouTube IDs ו/או תמונות
+    this.projects = [
+      {
+        title: 'Project One',
+        year: 2024,
+        description: 'עבודת וידאו עם דימויים נלווים',
+        medium: 'Video',
+        duration: '2:30',
+        currentIndex: 0,
+        media: [
+          { type: 'youtube', src: 'YPUSBxx99fMg' },
+           { type: 'youtube', src: 'QGGJGJLl5As' }
+         // { type: 'image', src: '/images/project1-1.jpg' }
+        ]
+      },
+      // {
+      //   title: 'Project Two',
+      //   year: 2023,
+      //   description: 'עבודת וידאו',
+      //   medium: 'Video',
+      //   duration: '1:40',
+      //   currentIndex: 0,
+      //   media: [
+      //     { type: 'youtube', src: 'YOUTUBE_ID_2' }
+      //   ]
+      // }
+    ]
 
-    for (const path in metadataModules) {
-      const match = path.match(/videos\/([^\/]+)\/metadata\.json$/);
-      if (!match) continue;
-      const folder = match[1];
-      const metadata = metadataModules[path];
-
-      const media = [];
-
-      // YouTube videos
-      if (metadata.youtube && Array.isArray(metadata.youtube)) {
-        metadata.youtube.forEach((id) => {
-          media.push({ type: 'youtube', src: id });
-        });
-      }
-
-      // Images
-      if (metadata.images && Array.isArray(metadata.images)) {
-        metadata.images.forEach((img) => {
-          media.push({ type: 'image', src: img });
-        });
-      }
-
-      projectsMap[folder] = { metadata, media, currentIndex: 0 };
-    }
-
-    this.projects = Object.values(projectsMap);
+    // ✅ מרנדרים רק אחרי שהנתונים קיימים
+    this.isReady = true
   },
+
   methods: {
     nextMedia(project) {
-      if (project.currentIndex < project.media.length - 1) project.currentIndex++;
+      if (project.currentIndex < project.media.length - 1) {
+        project.currentIndex++
+      }
     },
     prevMedia(project) {
-      if (project.currentIndex > 0) project.currentIndex--;
+      if (project.currentIndex > 0) {
+        project.currentIndex--
+      }
     },
-  },
-};
+    youtubeEmbed(id) {
+      return `https://www.youtube.com/embed/${id}`
+    }
+  }
+}
 </script>
 
 <style scoped>
@@ -124,6 +132,11 @@ export default {
   padding: 40px 20px;
   background-color: #111;
   color: white;
+}
+
+.loading {
+  text-align: center;
+  color: #aaa;
 }
 
 .projects-container {
@@ -135,47 +148,45 @@ export default {
 .project {
   background-color: black;
   padding: 20px;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
-.project h2 {
-  margin-bottom: 8px;
-}
-
-.project p {
-  margin-bottom: 10px;
+.meta {
   color: #ccc;
+  margin-bottom: 15px;
 }
 
 .media-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 15px;
+  gap: 12px;
 }
 
 .media {
-  flex-shrink: 0;
   width: 60vw;
-  height: auto;
-  background-color: black;
+  max-width: 900px;
+  aspect-ratio: 16 / 9;
+  background: black;
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
 }
 
-.media img,
-.media iframe {
-  max-width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 6px;
+.media iframe,
+.media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 .media-number {
   margin-top: 8px;
-  font-size: 1rem;
+  font-size: 0.9rem;
+  color: #ccc;
 }
 
 .nav-btn {
@@ -184,30 +195,24 @@ export default {
   color: white;
   font-size: 2rem;
   cursor: pointer;
-  padding: 10px 15px;
-  border-radius: 6px;
-  transition: background 0.2s;
-}
-
-.nav-btn:hover {
-  background-color: rgba(255, 255, 255, 0.5);
+  padding: 10px 14px;
+  border-radius: 8px;
 }
 
 .nav-btn:disabled {
-  background-color: rgba(255, 255, 255, 0.1);
+  opacity: 0.3;
   cursor: default;
 }
 
-/* רספונסיבי */
+/* 📱 מובייל */
 @media (max-width: 768px) {
   .media {
-    width: 80vw;
-  }
-}
-
-@media (max-width: 480px) {
-  .media {
     width: 90vw;
+  }
+
+  .nav-btn {
+    font-size: 1.6rem;
+    padding: 8px 10px;
   }
 }
 </style>
